@@ -36,6 +36,12 @@ def load_embedding_store(path):
     return records
 
 
+def save_embedding_store(path, records):
+    store_path = Path(path)
+    store_path.parent.mkdir(parents=True, exist_ok=True)
+    store_path.write_text(json.dumps(records, indent=2) + "\n", encoding="utf-8")
+
+
 def cosine_similarity(left, right):
     numerator = sum(a * b for a, b in zip(left, right))
     left_norm = sqrt(sum(a * a for a in left))
@@ -125,3 +131,17 @@ class HuggingFaceSimilarityService:
             "best_match": best_match,
             "matches": matches,
         }
+
+    def store_embedding(self, image_path, item_id, owner="Unverified"):
+        embedding = self.embedding_for_image(image_path)
+        records = load_embedding_store(self.store_path)
+        filtered = [record for record in records if record["id"] != str(item_id)]
+        filtered.append(
+            {
+                "id": str(item_id),
+                "owner": str(owner or "Unverified"),
+                "embedding": embedding,
+            }
+        )
+        save_embedding_store(self.store_path, filtered)
+        return True

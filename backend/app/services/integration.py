@@ -1,6 +1,6 @@
 from .blockchain_ownership import BlockchainOwnershipService
 from .hf_similarity import HuggingFaceSimilarityService
-from .media_check import analyze_image
+from .securemedia_core_adapter import analyze_with_securemedia_core, store_original_hash
 
 
 class HashingService:
@@ -10,12 +10,15 @@ class HashingService:
         self.hash_size = hash_size
 
     def analyze_image(self, image_path):
-        return analyze_image(
+        return analyze_with_securemedia_core(
             image_path,
             self.hash_store_path,
             threshold=self.threshold,
             hash_size=self.hash_size,
         )
+
+    def store_original_hash(self, image_path, image_hash):
+        return store_original_hash(image_path, self.hash_store_path, image_hash)
 
 
 class CombinedProcessingService:
@@ -59,6 +62,7 @@ class CombinedProcessingService:
 
         similarity = float(hash_result["similarity"])
         duplicate = hash_result["status"] == "duplicate"
+        ai_result = None
 
         try:
             ai_result = self.similarity_service.compare_against_store(image_path)
@@ -79,9 +83,24 @@ class CombinedProcessingService:
         except Exception:
             ownership = {"owner": "Unverified", "blockchain_verified": False}
 
+        owner = ownership.get("owner", "Unverified") or "Unverified"
+        if owner == "Unverified" and ai_result and ai_result.get("best_match"):
+            owner = ai_result["best_match"].get("owner", owner) or owner
+
+        if not duplicate:
+            try:
+                self.hash_service.store_original_hash(image_path, image_hash)
+            except Exception:
+                pass
+
+            try:
+                self.similarity_service.store_embedding(image_path, image_hash, owner)
+            except Exception:
+                pass
+
         return {
             "similarity": round(similarity, 2),
             "duplicate": bool(duplicate),
-            "owner": ownership.get("owner", "Unverified") or "Unverified",
+            "owner": owner,
             "blockchain_verified": bool(ownership.get("blockchain_verified", False)),
         }

@@ -105,3 +105,35 @@ def test_upload_marks_matching_stored_hash_as_duplicate(tmp_path):
     assert payload["similarity"] == 100.0
     assert payload["owner"] == "Unverified"
     assert payload["blockchain_verified"] is False
+
+
+def test_upload_persists_original_hash_for_repeat_detection(tmp_path):
+    hash_store = tmp_path / "hashes.json"
+    owner_store = tmp_path / "owners.json"
+    app = create_app(
+        {
+            "HASH_STORE_PATH": str(hash_store),
+            "OWNERSHIP_STORE_PATH": str(owner_store),
+        }
+    )
+    client = app.test_client()
+
+    first_response = client.post(
+        "/upload",
+        data={"file": (BytesIO(SMALL_PNG), "sample.png")},
+        content_type="multipart/form-data",
+    )
+    second_response = client.post(
+        "/upload",
+        data={"file": (BytesIO(SMALL_PNG), "sample.png")},
+        content_type="multipart/form-data",
+    )
+
+    first_payload = first_response.get_json()
+    second_payload = second_response.get_json()
+
+    assert first_response.status_code == 200
+    assert first_payload["duplicate"] is False
+    assert second_response.status_code == 200
+    assert second_payload["duplicate"] is True
+    assert second_payload["similarity"] == 100.0

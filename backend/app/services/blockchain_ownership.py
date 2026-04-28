@@ -17,6 +17,16 @@ CONTRACT_ABI = [
         "stateMutability": "view",
         "type": "function",
     },
+    {
+        "inputs": [
+            {"internalType": "string", "name": "imageHash", "type": "string"},
+            {"internalType": "address", "name": "claimant", "type": "address"},
+        ],
+        "name": "verifyOwnership",
+        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
 ]
 
 
@@ -118,3 +128,12 @@ class BlockchainOwnershipService:
             "owner": owner if is_verified else "Unverified",
             "blockchain_verified": bool(is_verified),
         }
+
+    def verify_claimant(self, image_hash, claimant):
+        web3, contract = self._load_contract()
+        if web3 is None or contract is None:
+            registry = self._load_registry()
+            stored = registry.get(image_hash)
+            return bool(stored and stored.get("owner") == claimant)
+
+        return bool(contract.functions.verifyOwnership(image_hash, claimant).call())

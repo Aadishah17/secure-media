@@ -38,6 +38,22 @@ def load_store(path):
     return entries
 
 
+def save_store(path, entries):
+    hash_store = Path(path)
+    hash_store.parent.mkdir(parents=True, exist_ok=True)
+    hash_store.write_text(json.dumps(entries, indent=2) + "\n", encoding="utf-8")
+
+
+def add_original_hash(path, image_hash, item_id):
+    entries = load_store(path)
+    if any(entry.get("hash") == image_hash for entry in entries):
+        return False
+
+    entries.append({"id": str(item_id), "hash": str(image_hash)})
+    save_store(path, entries)
+    return True
+
+
 def phash_image(image_path, hash_size):
     try:
         with Image.open(image_path) as image:
