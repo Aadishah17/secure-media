@@ -11,6 +11,7 @@ beforeAll(() => {
 
 afterEach(() => {
   vi.clearAllMocks()
+  delete global.fetch
 })
 
 describe('App', () => {
@@ -37,5 +38,38 @@ describe('App', () => {
 
     expect(screen.queryByText('claim-photo.png')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /analyze image/i })).toBeDisabled()
+  })
+
+  test('shows loading state and renders upload results', async () => {
+    const user = userEvent.setup()
+    const image = new File(['image-data'], 'claim-photo.png', { type: 'image/png' })
+    let resolveRequest
+    global.fetch = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve
+        })
+    )
+
+    render(<App />)
+    await user.upload(screen.getByLabelText(/choose image/i), image)
+    await user.click(screen.getByRole('button', { name: /analyze image/i }))
+
+    expect(screen.getByText(/uploading image/i)).toBeInTheDocument()
+
+    resolveRequest({
+      ok: true,
+      json: async () => ({
+        similarity: 97.5,
+        duplicate: true,
+        owner: 'Aadishah',
+        blockchain_verified: true
+      })
+    })
+
+    expect(await screen.findByText('97.5%')).toBeInTheDocument()
+    expect(screen.getByText(/duplicate detected/i)).toBeInTheDocument()
+    expect(screen.getByText('Aadishah')).toBeInTheDocument()
+    expect(screen.getAllByText(/verified/i)).toHaveLength(2)
   })
 })
