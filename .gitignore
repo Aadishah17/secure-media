@@ -8,4 +8,5 @@ __pycache__/
 *.py[cod]
 .venv/
 *.local
+backend/.env
 backend/tests/missing-owners.json

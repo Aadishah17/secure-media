@@ -9,9 +9,17 @@ SMALL_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
 )
 
+TEST_CHAIN_CONFIG = {
+    "WEB3_PROVIDER_URI": None,
+    "CONTRACT_ADDRESS": None,
+    "OWNER_ADDRESS": None,
+    "PRIVATE_KEY": None,
+    "CHAIN_ID": None,
+}
+
 
 def test_upload_requires_file():
-    app = create_app()
+    app = create_app(TEST_CHAIN_CONFIG)
     client = app.test_client()
 
     response = client.post("/upload", data={}, content_type="multipart/form-data")
@@ -21,7 +29,7 @@ def test_upload_requires_file():
 
 
 def test_upload_rejects_non_image_file():
-    app = create_app()
+    app = create_app(TEST_CHAIN_CONFIG)
     client = app.test_client()
 
     response = client.post(
@@ -35,7 +43,12 @@ def test_upload_rejects_non_image_file():
 
 
 def test_upload_rejects_invalid_image_bytes():
-    app = create_app({"HASH_STORE_PATH": "backend/tests/missing-hashes.json"})
+    app = create_app(
+        {
+            **TEST_CHAIN_CONFIG,
+            "HASH_STORE_PATH": "backend/tests/missing-hashes.json",
+        }
+    )
     client = app.test_client()
 
     response = client.post(
@@ -51,6 +64,7 @@ def test_upload_rejects_invalid_image_bytes():
 def test_upload_processes_image_with_securemedia_core(tmp_path):
     app = create_app(
         {
+            **TEST_CHAIN_CONFIG,
             "HASH_STORE_PATH": str(tmp_path / "hashes.json"),
             "OWNERSHIP_STORE_PATH": str(tmp_path / "owners.json"),
         }
@@ -86,6 +100,7 @@ def test_upload_marks_matching_stored_hash_as_duplicate(tmp_path):
     )
     app = create_app(
         {
+            **TEST_CHAIN_CONFIG,
             "HASH_STORE_PATH": str(hash_store),
             "OWNERSHIP_STORE_PATH": str(tmp_path / "owners.json"),
         }
@@ -112,6 +127,7 @@ def test_upload_persists_original_hash_for_repeat_detection(tmp_path):
     owner_store = tmp_path / "owners.json"
     app = create_app(
         {
+            **TEST_CHAIN_CONFIG,
             "HASH_STORE_PATH": str(hash_store),
             "OWNERSHIP_STORE_PATH": str(owner_store),
         }
