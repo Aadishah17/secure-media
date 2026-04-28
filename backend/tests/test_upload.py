@@ -49,7 +49,12 @@ def test_upload_rejects_invalid_image_bytes():
 
 
 def test_upload_processes_image_with_securemedia_core(tmp_path):
-    app = create_app({"HASH_STORE_PATH": str(tmp_path / "hashes.json")})
+    app = create_app(
+        {
+            "HASH_STORE_PATH": str(tmp_path / "hashes.json"),
+            "OWNERSHIP_STORE_PATH": str(tmp_path / "owners.json"),
+        }
+    )
     client = app.test_client()
 
     response = client.post(
@@ -62,17 +67,15 @@ def test_upload_processes_image_with_securemedia_core(tmp_path):
 
     assert response.status_code == 200
     assert set(payload) == {
-        "hash",
         "similarity",
-        "status",
-        "best_match",
-        "matches",
+        "duplicate",
+        "owner",
+        "blockchain_verified",
     }
-    assert payload["status"] == "original"
+    assert payload["duplicate"] is False
     assert payload["similarity"] == 0.0
-    assert payload["best_match"] is None
-    assert payload["matches"] == []
-    assert isinstance(payload["hash"], str)
+    assert payload["owner"] == "Unverified"
+    assert payload["blockchain_verified"] is False
 
 
 def test_upload_marks_matching_stored_hash_as_duplicate(tmp_path):
@@ -81,7 +84,12 @@ def test_upload_marks_matching_stored_hash_as_duplicate(tmp_path):
         json.dumps([{"id": "stored-sample", "hash": "8000000000000000"}]),
         encoding="utf-8",
     )
-    app = create_app({"HASH_STORE_PATH": str(hash_store)})
+    app = create_app(
+        {
+            "HASH_STORE_PATH": str(hash_store),
+            "OWNERSHIP_STORE_PATH": str(tmp_path / "owners.json"),
+        }
+    )
     client = app.test_client()
 
     response = client.post(
@@ -93,7 +101,7 @@ def test_upload_marks_matching_stored_hash_as_duplicate(tmp_path):
     payload = response.get_json()
 
     assert response.status_code == 200
-    assert payload["status"] == "duplicate"
+    assert payload["duplicate"] is True
     assert payload["similarity"] == 100.0
-    assert payload["best_match"]["id"] == "stored-sample"
-    assert payload["matches"][0]["hash"] == "8000000000000000"
+    assert payload["owner"] == "Unverified"
+    assert payload["blockchain_verified"] is False

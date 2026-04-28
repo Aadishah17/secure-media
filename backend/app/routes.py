@@ -5,7 +5,8 @@ from pathlib import Path
 from flask import Blueprint, current_app, jsonify, request
 from werkzeug.utils import secure_filename
 
-from .services.media_check import InvalidImageError, analyze_image
+from .services.integration import CombinedProcessingService
+from .services.media_check import InvalidImageError
 
 upload_bp = Blueprint("upload", __name__)
 
@@ -27,15 +28,14 @@ def upload_image():
 
     try:
         uploaded_file.save(temp_path)
-        result = analyze_image(
-            temp_path,
-            current_app.config["HASH_STORE_PATH"],
-            threshold=current_app.config["DUPLICATE_THRESHOLD"],
-            hash_size=current_app.config["HASH_SIZE"],
-        )
+        processor = current_app.config.get("UPLOAD_PROCESSOR")
+        if processor is None:
+            processor = CombinedProcessingService.from_config(current_app.config)
+        result = processor.process_upload(temp_path)
     except InvalidImageError:
         return jsonify({"error": "Uploaded file is not a valid image"}), 400
     finally:
-        os.remove(temp_path)
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
     return jsonify(result)
