@@ -9,4 +9,6 @@ __pycache__/
 .venv/
 *.local
 backend/.env
+backend/data/*.json
+!backend/data/.gitkeep
 backend/tests/missing-owners.json
