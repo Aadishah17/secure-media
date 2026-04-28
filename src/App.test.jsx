@@ -21,6 +21,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /upload media/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/choose image/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /analyze image/i })).toBeDisabled()
+    expect(screen.getByText('Awaiting upload')).toHaveClass('text-slate-700')
   })
 
   test('accepts an image file and clears the selection', async () => {
@@ -71,5 +72,37 @@ describe('App', () => {
     expect(screen.getByText(/duplicate detected/i)).toBeInTheDocument()
     expect(screen.getByText('Aadishah')).toBeInTheDocument()
     expect(screen.getAllByText(/verified/i)).toHaveLength(2)
+  })
+
+  test('rejects non-image file selection', async () => {
+    const user = userEvent.setup({ applyAccept: false })
+    const textFile = new File(['plain text'], 'notes.txt', { type: 'text/plain' })
+
+    render(<App />)
+    await user.upload(screen.getByLabelText(/choose image/i), textFile)
+
+    expect(screen.getByText(/upload an image file to continue/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /analyze image/i })).toBeDisabled()
+  })
+
+  test('shows text fallback when backend error response is not json', async () => {
+    const user = userEvent.setup()
+    const image = new File(['image-data'], 'claim-photo.png', { type: 'image/png' })
+
+    global.fetch = vi.fn(async () => ({
+      ok: false,
+      clone: () => ({
+        text: async () => 'Server exploded'
+      }),
+      json: async () => {
+        throw new Error('Unexpected token <')
+      }
+    }))
+
+    render(<App />)
+    await user.upload(screen.getByLabelText(/choose image/i), image)
+    await user.click(screen.getByRole('button', { name: /analyze image/i }))
+
+    expect(await screen.findByText('Server exploded')).toBeInTheDocument()
   })
 })

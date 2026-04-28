@@ -50,6 +50,42 @@ function ResultCard({ label, value, accent = 'text-slate-950' }) {
   )
 }
 
+async function readResponsePayload(response) {
+  if (typeof response.clone === 'function' && typeof response.json === 'function') {
+    const cloned = response.clone()
+
+    try {
+      return await response.json()
+    } catch {
+      try {
+        const text = await cloned.text()
+        return text ? { error: text } : null
+      } catch {
+        return null
+      }
+    }
+  }
+
+  if (typeof response.json === 'function') {
+    try {
+      return await response.json()
+    } catch {
+      return null
+    }
+  }
+
+  if (typeof response.text === 'function') {
+    try {
+      const text = await response.text()
+      return text ? { error: text } : null
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
 export default function App() {
   const [file, setFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
@@ -120,10 +156,10 @@ export default function App() {
         body: formData,
         signal: controller.signal
       })
-      const payload = await response.json()
+      const payload = await readResponsePayload(response)
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Upload failed')
+        throw new Error(payload?.error || 'Upload failed')
       }
 
       setResult(payload)
@@ -149,6 +185,12 @@ export default function App() {
   const duplicateText =
     result.duplicate === null ? 'Awaiting upload' : result.duplicate ? 'Duplicate' : 'Original'
   const verificationText = result.blockchain_verified ? 'Verified' : 'Not verified'
+  const duplicateAccent =
+    result.duplicate === null
+      ? 'text-slate-700'
+      : result.duplicate
+        ? 'text-rose-700'
+        : 'text-emerald-700'
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#eef6ff,_#f7f8fb_38%,_#ffffff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
@@ -168,8 +210,20 @@ export default function App() {
           </div>
 
           <StatusPill
-            tone={result.duplicate === true ? 'negative' : 'positive'}
-            text={result.duplicate === true ? 'Duplicate alert' : 'Ready for upload'}
+            tone={
+              result.duplicate === null
+                ? 'neutral'
+                : result.duplicate
+                  ? 'negative'
+                  : 'positive'
+            }
+            text={
+              result.duplicate === null
+                ? 'Awaiting analysis'
+                : result.duplicate
+                  ? 'Duplicate alert'
+                  : 'Ready for upload'
+            }
           />
         </header>
 
@@ -306,7 +360,7 @@ export default function App() {
               <ResultCard
                 label="Duplicate status"
                 value={duplicateText}
-                accent={result.duplicate ? 'text-rose-700' : 'text-emerald-700'}
+                accent={duplicateAccent}
               />
               <ResultCard label="Owner" value={result.owner || 'Unverified'} />
               <ResultCard
