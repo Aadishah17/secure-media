@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+const HEALTHCHECK_PATH = import.meta.env.VITE_HEALTHCHECK_PATH || '/api/health'
 
 const emptyResult = {
   similarity: null,
@@ -91,6 +92,7 @@ export default function App() {
   const [previewUrl, setPreviewUrl] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [backendReady, setBackendReady] = useState(null)
   const [result, setResult] = useState(emptyResult)
   const [error, setError] = useState('')
   const abortRef = useRef(null)
@@ -110,6 +112,27 @@ export default function App() {
   useEffect(() => {
     return () => {
       abortRef.current?.abort()
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function probeBackend() {
+      try {
+        const response = await fetch(`${API_BASE_URL}${HEALTHCHECK_PATH}`)
+        if (!isMounted) return
+        setBackendReady(response.ok)
+      } catch {
+        if (!isMounted) return
+        setBackendReady(false)
+      }
+    }
+
+    probeBackend()
+
+    return () => {
+      isMounted = false
     }
   }, [])
 
@@ -211,18 +234,22 @@ export default function App() {
 
           <StatusPill
             tone={
-              result.duplicate === null
-                ? 'neutral'
-                : result.duplicate
-                  ? 'negative'
-                  : 'positive'
+              backendReady === false
+                ? 'negative'
+                : result.duplicate === null
+                  ? 'neutral'
+                  : result.duplicate
+                    ? 'negative'
+                    : 'positive'
             }
             text={
-              result.duplicate === null
-                ? 'Awaiting analysis'
-                : result.duplicate
-                  ? 'Duplicate alert'
-                  : 'Ready for upload'
+              backendReady === false
+                ? 'Backend unavailable'
+                : result.duplicate === null
+                  ? 'Awaiting analysis'
+                  : result.duplicate
+                    ? 'Duplicate alert'
+                    : 'Ready for upload'
             }
           />
         </header>

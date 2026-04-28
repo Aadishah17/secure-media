@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest'
 import App from './App.jsx'
 
 beforeAll(() => {
@@ -9,10 +9,35 @@ beforeAll(() => {
   URL.revokeObjectURL = vi.fn()
 })
 
+beforeEach(() => {
+  global.fetch = vi.fn(async (url) => {
+    if (url === '/api/health') {
+      return {
+        ok: true,
+        json: async () => ({ status: 'ok' })
+      }
+    }
+
+    return {
+      ok: true,
+      json: async () => emptyUploadResult()
+    }
+  })
+})
+
 afterEach(() => {
   vi.clearAllMocks()
   delete global.fetch
 })
+
+function emptyUploadResult() {
+  return {
+    similarity: 0,
+    duplicate: false,
+    owner: 'Unverified',
+    blockchain_verified: false
+  }
+}
 
 describe('App', () => {
   test('renders the upload workspace', () => {
@@ -46,16 +71,30 @@ describe('App', () => {
     const image = new File(['image-data'], 'claim-photo.png', { type: 'image/png' })
     let resolveRequest
     global.fetch = vi.fn(
-      () =>
-        new Promise((resolve) => {
+      (url) => {
+        if (url === '/api/health') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ status: 'ok' })
+          })
+        }
+
+        return new Promise((resolve) => {
           resolveRequest = resolve
         })
+      }
     )
 
     render(<App />)
     await user.upload(screen.getByLabelText(/choose image/i), image)
     await user.click(screen.getByRole('button', { name: /analyze image/i }))
 
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/upload',
+      expect.objectContaining({
+        method: 'POST'
+      })
+    )
     expect(screen.getByText(/uploading image/i)).toBeInTheDocument()
 
     resolveRequest({

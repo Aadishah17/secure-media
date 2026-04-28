@@ -15,6 +15,10 @@ def test_create_app_reads_backend_dotenv_and_process_env(monkeypatch):
                 "CONTRACT_ADDRESS=0xFromDotEnv",
                 "OWNER_ADDRESS=0xOwnerFromDotEnv",
                 "CHAIN_ID=11155111",
+                "SIMILARITY_PROVIDER=google",
+                "GOOGLE_CLOUD_PROJECT=securemedia-demo",
+                "GOOGLE_CLOUD_LOCATION=europe-west4",
+                "GOOGLE_MODEL_NAME=multimodalembedding@001",
             ]
         )
         + "\n",
@@ -35,3 +39,7 @@ def test_create_app_reads_backend_dotenv_and_process_env(monkeypatch):
     assert app.config["CONTRACT_ADDRESS"] == "0xFromProcessEnv"
     assert app.config["OWNER_ADDRESS"] == "0xOwnerFromDotEnv"
     assert app.config["CHAIN_ID"] == 11155111
+    assert app.config["SIMILARITY_PROVIDER"] == "google"
+    assert app.config["GOOGLE_CLOUD_PROJECT"] == "securemedia-demo"
+    assert app.config["GOOGLE_CLOUD_LOCATION"] == "europe-west4"
+    assert app.config["GOOGLE_MODEL_NAME"] == "multimodalembedding@001"

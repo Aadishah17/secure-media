@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from PIL import Image
 from .embedding_store import (
     SimilarityServiceError,
     cosine_similarity,
@@ -9,52 +8,60 @@ from .embedding_store import (
 )
 
 
-class HuggingFaceSimilarityService:
-    def __init__(self, model_name, store_path):
-        self.model_name = model_name
+class GoogleSimilarityService:
+    def __init__(
+        self,
+        project_id,
+        location,
+        store_path,
+        model_name="multimodalembedding@001",
+        dimension=512,
+    ):
+        if not project_id:
+            raise ValueError("Google similarity requires a project_id.")
+
+        self.project_id = project_id
+        self.location = location or "us-central1"
         self.store_path = Path(store_path)
-        self._processor = None
+        self.model_name = model_name or "multimodalembedding@001"
+        self.dimension = int(dimension)
+        self._image_class = None
         self._model = None
-        self._torch = None
 
     def _load_runtime(self):
-        if self._processor is not None and self._model is not None and self._torch is not None:
+        if self._image_class is not None and self._model is not None:
             return
 
         try:
-            import torch
-            from transformers import AutoImageProcessor, AutoModel
+            import vertexai
+            from vertexai.vision_models import Image, MultiModalEmbeddingModel
         except ImportError as exc:
             raise SimilarityServiceError(
-                "Hugging Face similarity runtime is not installed."
+                "Google Vertex AI similarity runtime is not installed."
             ) from exc
 
         try:
-            processor = AutoImageProcessor.from_pretrained(self.model_name)
-            model = AutoModel.from_pretrained(self.model_name)
-            model.eval()
+            vertexai.init(project=self.project_id, location=self.location)
+            model = MultiModalEmbeddingModel.from_pretrained(self.model_name)
         except Exception as exc:
-            raise SimilarityServiceError("Failed to load Hugging Face image model.") from exc
+            raise SimilarityServiceError(
+                "Failed to load Google Vertex AI embedding model."
+            ) from exc
 
-        self._torch = torch
-        self._processor = processor
+        self._image_class = Image
         self._model = model
 
     def embedding_for_image(self, image_path):
         self._load_runtime()
 
         try:
-            with Image.open(image_path) as image:
-                rgb_image = image.convert("RGB")
-
-            inputs = self._processor(images=rgb_image, return_tensors="pt")
-            with self._torch.no_grad():
-                outputs = self._model(**inputs)
-            vector = outputs.pooler_output[0]
-            vector = vector / vector.norm(p=2)
-            return vector.cpu().tolist()
+            image = self._image_class.load_from_file(str(image_path))
+            result = self._model.get_embeddings(image=image, dimension=self.dimension)
+            return [float(value) for value in result.image_embedding]
         except Exception as exc:
-            raise SimilarityServiceError("Failed to generate image embedding.") from exc
+            raise SimilarityServiceError(
+                "Failed to generate Google Vertex AI image embedding."
+            ) from exc
 
     def compare_against_store(self, image_path):
         records = load_embedding_store(self.store_path)

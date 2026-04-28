@@ -1,4 +1,5 @@
 from .blockchain_ownership import BlockchainOwnershipService
+from .google_similarity import GoogleSimilarityService
 from .hf_similarity import HuggingFaceSimilarityService
 from .securemedia_core_adapter import analyze_with_securemedia_core, store_original_hash
 
@@ -36,16 +37,28 @@ class CombinedProcessingService:
 
     @classmethod
     def from_config(cls, config):
+        similarity_provider = str(config.get("SIMILARITY_PROVIDER", "huggingface")).lower()
+        if similarity_provider == "google":
+            similarity_service = GoogleSimilarityService(
+                project_id=config.get("GOOGLE_CLOUD_PROJECT"),
+                location=config.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
+                store_path=config.get("GOOGLE_EMBEDDING_STORE_PATH"),
+                model_name=config.get("GOOGLE_MODEL_NAME", "multimodalembedding@001"),
+                dimension=config.get("GOOGLE_EMBEDDING_DIMENSION", 512),
+            )
+        else:
+            similarity_service = HuggingFaceSimilarityService(
+                model_name=config["HF_MODEL_NAME"],
+                store_path=config["EMBEDDING_STORE_PATH"],
+            )
+
         return cls(
             hash_service=HashingService(
                 hash_store_path=config["HASH_STORE_PATH"],
                 threshold=config["DUPLICATE_THRESHOLD"],
                 hash_size=config["HASH_SIZE"],
             ),
-            similarity_service=HuggingFaceSimilarityService(
-                model_name=config["HF_MODEL_NAME"],
-                store_path=config["EMBEDDING_STORE_PATH"],
-            ),
+            similarity_service=similarity_service,
             ownership_service=BlockchainOwnershipService(
                 provider_uri=config.get("WEB3_PROVIDER_URI"),
                 contract_address=config.get("CONTRACT_ADDRESS"),

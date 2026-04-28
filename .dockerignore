@@ -1,0 +1,11 @@
+.git
+.pytest_cache
+.playwright-mcp
+.benchmarks
+node_modules
+dist
+coverage
+backend/.env
+backend/data/*.json
+docs/assets
+docs/SecureMedia_AI_Solution_Challenge_Deck.pptx

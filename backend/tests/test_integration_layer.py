@@ -44,6 +44,15 @@ class StubOwnershipService:
         return self.payload
 
 
+class FakeGoogleSimilarityService:
+    def __init__(self, project_id, location, store_path, model_name, dimension):
+        self.project_id = project_id
+        self.location = location
+        self.store_path = store_path
+        self.model_name = model_name
+        self.dimension = dimension
+
+
 def test_integration_uses_ai_similarity_when_available(tmp_path):
     image_path = tmp_path / "sample.png"
     image_path.write_bytes(b"content")
@@ -119,3 +128,38 @@ def test_integration_persists_new_originals_for_future_checks(tmp_path):
     }
     assert hash_service.stored_hashes == [(str(image_path), "hash-c")]
     assert similarity_service.stored_embeddings == [(str(image_path), "hash-c", "0xowner")]
+
+
+def test_from_config_builds_google_similarity_service_when_selected(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "backend.app.services.integration.GoogleSimilarityService",
+        FakeGoogleSimilarityService,
+    )
+
+    service = CombinedProcessingService.from_config(
+        {
+            "HASH_STORE_PATH": str(tmp_path / "hashes.json"),
+            "DUPLICATE_THRESHOLD": 90.0,
+            "HASH_SIZE": 8,
+            "SIMILARITY_PROVIDER": "google",
+            "GOOGLE_CLOUD_PROJECT": "securemedia-demo",
+            "GOOGLE_CLOUD_LOCATION": "us-central1",
+            "GOOGLE_MODEL_NAME": "multimodalembedding@001",
+            "GOOGLE_EMBEDDING_STORE_PATH": str(tmp_path / "google-embeddings.json"),
+            "HF_MODEL_NAME": "openai/clip-vit-base-patch32",
+            "EMBEDDING_STORE_PATH": str(tmp_path / "hf-embeddings.json"),
+            "WEB3_PROVIDER_URI": None,
+            "CONTRACT_ADDRESS": None,
+            "OWNER_ADDRESS": None,
+            "PRIVATE_KEY": None,
+            "CHAIN_ID": None,
+            "OWNERSHIP_STORE_PATH": str(tmp_path / "ownership.json"),
+        }
+    )
+
+    assert isinstance(service.similarity_service, FakeGoogleSimilarityService)
+    assert service.similarity_service.project_id == "securemedia-demo"
+    assert service.similarity_service.location == "us-central1"
+    assert str(service.similarity_service.store_path).endswith("google-embeddings.json")
+    assert service.similarity_service.model_name == "multimodalembedding@001"
+    assert service.similarity_service.dimension == 512
