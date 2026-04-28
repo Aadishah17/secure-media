@@ -204,8 +204,10 @@ def build():
         Inches(1.95),
         [
             {"text": "Team Details", "size": 18, "bold": True, "color": DARK, "space_after": 10},
-            {"text": "Team name: SecureMedia AI", "size": 13, "color": NAVY, "bold": True, "space_after": 4},
-            {"text": "Team leader name: Aadishah17", "size": 12.5, "color": DARK, "space_after": 4},
+            {"text": "Team name: double trouble 2x", "size": 13, "color": NAVY, "bold": True, "space_after": 4},
+            {"text": "Team members:", "size": 12.5, "color": DARK, "bold": True, "space_after": 2},
+            {"text": "1) Aadi shah", "size": 12.5, "color": DARK, "space_after": 2},
+            {"text": "2) nitya singh", "size": 12.5, "color": DARK, "space_after": 4},
             {
                 "text": (
                     "Problem Statement: creators, journalists, marketplaces, and moderators "
