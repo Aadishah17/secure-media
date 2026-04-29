@@ -49,6 +49,7 @@ def create_app(test_config=None):
         HASH_SIZE=_env_value(file_env, "HASH_SIZE", 8, int),
         SIMILARITY_PROVIDER=_env_value(file_env, "SIMILARITY_PROVIDER", "huggingface"),
         HF_MODEL_NAME=_env_value(file_env, "HF_MODEL_NAME", "openai/clip-vit-base-patch32"),
+        GEMINI_API_KEY=_env_value(file_env, "GEMINI_API_KEY"),
         GOOGLE_CLOUD_PROJECT=_env_value(file_env, "GOOGLE_CLOUD_PROJECT"),
         GOOGLE_CLOUD_LOCATION=_env_value(file_env, "GOOGLE_CLOUD_LOCATION", "us-central1"),
         GOOGLE_MODEL_NAME=_env_value(file_env, "GOOGLE_MODEL_NAME", "multimodalembedding@001"),

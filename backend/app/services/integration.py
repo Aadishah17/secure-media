@@ -48,10 +48,16 @@ class CombinedProcessingService:
             )
         elif similarity_provider == "gemini":
             from .gemini_similarity import GeminiSimilarityService
-            similarity_service = GeminiSimilarityService(
-                api_key=config.get("GEMINI_API_KEY"),
-                store_path=config["EMBEDDING_STORE_PATH"],
-            )
+            if config.get("GEMINI_API_KEY"):
+                similarity_service = GeminiSimilarityService(
+                    api_key=config.get("GEMINI_API_KEY"),
+                    store_path=config["EMBEDDING_STORE_PATH"],
+                )
+            else:
+                similarity_service = HuggingFaceSimilarityService(
+                    model_name=config["HF_MODEL_NAME"],
+                    store_path=config["EMBEDDING_STORE_PATH"],
+                )
         else:
             similarity_service = HuggingFaceSimilarityService(
                 model_name=config["HF_MODEL_NAME"],

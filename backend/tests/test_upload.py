@@ -10,6 +10,7 @@ SMALL_PNG = base64.b64decode(
 )
 
 TEST_CHAIN_CONFIG = {
+    "SIMILARITY_PROVIDER": "huggingface",
     "WEB3_PROVIDER_URI": None,
     "CONTRACT_ADDRESS": None,
     "OWNER_ADDRESS": None,
