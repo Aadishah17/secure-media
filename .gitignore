@@ -12,3 +12,7 @@ backend/.env
 backend/data/*.json
 !backend/data/.gitkeep
 backend/tests/missing-owners.json
+docs/video/audio/
+docs/video/frames/
+securemedia-demoTEMP_MPY_wvf_snd.mp4
+securemedia-video-*.png

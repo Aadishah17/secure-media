@@ -1,0 +1,14 @@
+Scene 1
+This is SecureMedia AI, a website that checks uploaded images for similarity, duplicate risk, and ownership status.
+
+Scene 2
+On the home screen, the user sees a simple upload interface, an image preview area, and result cards for similarity, duplicate status, owner, and blockchain verification.
+
+Scene 3
+After choosing an image, the preview appears immediately, and the file is ready for analysis.
+
+Scene 4
+When the user clicks Analyze image, the Flask backend processes the upload, compares it against stored data and optional AI similarity services, and returns the result. Here the image is marked original with zero percent similarity, while ownership remains unverified.
+
+Scene 5
+The full stack is deployed on Google Cloud Run. React handles the frontend, Flask handles the API, and the workflow stays simple enough for a quick live demo.
