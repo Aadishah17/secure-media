@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { StatusPill } from './components/StatusPill'
 import { ResultCard } from './components/ResultCard'
 import { Uploader } from './components/Uploader'
+import { requestAccount } from './lib/web3'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const HEALTHCHECK_PATH = import.meta.env.VITE_HEALTHCHECK_PATH || '/api/health'
@@ -57,6 +58,8 @@ export default function App() {
   const [backendReady, setBackendReady] = useState(null)
   const [result, setResult] = useState(emptyResult)
   const [error, setError] = useState('')
+  const [walletAddress, setWalletAddress] = useState('')
+  const [isConnecting, setIsConnecting] = useState(false)
   const abortRef = useRef(null)
 
   useEffect(() => {
@@ -165,6 +168,22 @@ export default function App() {
     selectFile(event.dataTransfer.files?.[0])
   }
 
+  async function connectWallet() {
+    setIsConnecting(true)
+    try {
+      const address = await requestAccount()
+      if (address) {
+        setWalletAddress(address)
+      } else {
+        setError('Failed to connect wallet or no Web3 provider found.')
+      }
+    } catch (err) {
+      setError('Error connecting wallet: ' + err.message)
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
   const similarityText =
     result.similarity === null ? '--' : `${Number(result.similarity).toFixed(1)}%`
   const duplicateText =
@@ -194,26 +213,43 @@ export default function App() {
             </p>
           </div>
 
-          <StatusPill
-            tone={
-              backendReady === false
-                ? 'negative'
-                : result.duplicate === null
-                  ? 'neutral'
-                  : result.duplicate
-                    ? 'negative'
-                    : 'positive'
-            }
-            text={
-              backendReady === false
-                ? 'Backend unavailable'
-                : result.duplicate === null
-                  ? 'Awaiting analysis'
-                  : result.duplicate
-                    ? 'Duplicate alert'
-                    : 'Ready for upload'
-            }
-          />
+          <div className="flex flex-col items-end gap-3">
+            {walletAddress ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm border border-slate-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </span>
+            ) : (
+              <button
+                onClick={connectWallet}
+                disabled={isConnecting}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-50"
+              >
+                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+              </button>
+            )}
+
+            <StatusPill
+              tone={
+                backendReady === false
+                  ? 'negative'
+                  : result.duplicate === null
+                    ? 'neutral'
+                    : result.duplicate
+                      ? 'negative'
+                      : 'positive'
+              }
+              text={
+                backendReady === false
+                  ? 'Backend unavailable'
+                  : result.duplicate === null
+                    ? 'Awaiting analysis'
+                    : result.duplicate
+                      ? 'Duplicate alert'
+                      : 'Ready for upload'
+              }
+            />
+          </div>
         </header>
 
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">

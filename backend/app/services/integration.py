@@ -46,6 +46,12 @@ class CombinedProcessingService:
                 model_name=config.get("GOOGLE_MODEL_NAME", "multimodalembedding@001"),
                 dimension=config.get("GOOGLE_EMBEDDING_DIMENSION", 512),
             )
+        elif similarity_provider == "gemini":
+            from .gemini_similarity import GeminiSimilarityService
+            similarity_service = GeminiSimilarityService(
+                api_key=config.get("GEMINI_API_KEY"),
+                store_path=config["EMBEDDING_STORE_PATH"],
+            )
         else:
             similarity_service = HuggingFaceSimilarityService(
                 model_name=config["HF_MODEL_NAME"],
